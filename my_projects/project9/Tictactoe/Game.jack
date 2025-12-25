@@ -1,0 +1,246 @@
+class Game {
+    field Array board;
+    field int turn;
+    field boolean gameOver;
+
+    field int xStart;
+    field int yStart;
+    field int cellSize;
+
+    constructor Game new() {
+        let board = Array.new(9);
+        let turn = 0;
+        let gameOver = false;
+
+        let xStart = 143;
+        let yStart = 25;
+        let cellSize = 75;
+
+        return this;
+    }
+
+    method void dispose() {
+        do board.dispose();
+        return;
+    }
+
+    method void play() {
+        var int key;
+
+        do Screen.clearScreen();
+        do Screen.setColor(true);
+        do Output.printString("TIC TAC TOE (Refactored)");
+        do Output.println();
+
+        while (~gameOver) {
+            do drawBoard();
+
+            if (turn = 0) {
+                do handlePlayerTurn();
+            } else {
+                do makeComputerMove();
+            }
+
+            if (isWinner(turn + 1)) {
+                let gameOver = true;
+                do handleWinMessage();
+            } else {
+                if (~hasEmpty()) {
+                    let gameOver = true;
+                    do drawBoard();
+                    do Output.printString("It's a draw!");
+                } else {
+                    do switchTurn();
+                }
+            }
+        }
+
+        do Output.println();
+        do Output.printString("Game over. Press any key to exit...");
+        let key = Keyboard.readChar();
+        do Screen.clearScreen();
+
+        return;
+    }
+
+    method void switchTurn() {
+        if (turn = 0) {
+            let turn = 1;
+        } else {
+            let turn = 0;
+        }
+        return;
+    }
+
+    method void handleWinMessage() {
+        do drawBoard();
+        if (turn = 0) {
+            do Output.printString("You win!");
+        } else {
+            do Output.printString("Computer wins!");
+        }
+        return;
+    }
+
+    method void handlePlayerTurn() {
+        var int key, move, boardIndex;
+        var boolean moveMade;
+        let moveMade = false;
+        
+        do Output.printString("Your move (1-9): ");
+
+        while (~moveMade) {
+            let key = Keyboard.readChar();
+            let move = key - 48;
+            
+            if ((move > 0) & (move < 10)) {
+                let boardIndex = move - 1;
+                
+                if (board[boardIndex] = 0) {
+                    let board[boardIndex] = 1;
+                    let moveMade = true;
+                } else {
+                    do Output.printString("Spot occupied. Try again: ");
+                }
+            } else {
+                do Output.printString("Invalid (1-9). Try again: ");
+            }
+        }
+        do Output.println();
+        return;
+    }
+
+    method void makeComputerMove() {
+        var int pos;
+        var boolean spotFound;
+        
+        let pos = 8;
+        let spotFound = false;
+
+        while ((pos > -1) & (~spotFound)) {
+            if (board[pos] = 0) {
+                let board[pos] = 2;
+                let spotFound = true;
+            } else {
+                let pos = pos - 1;
+            }
+        }
+        return;
+    }
+
+    method void mapIndexToCoords(int index, Array coords) {
+        var int row, col, xCenter, yCenter;
+        
+        let row = index / 3;
+        let col = index - (row * 3);
+        
+        let xCenter = xStart + (col * cellSize) + (cellSize / 2);
+        let yCenter = yStart + (row * cellSize) + (cellSize / 2);
+
+        let coords[0] = xCenter;
+        let coords[1] = yCenter;
+
+        return;
+    }
+
+    method void drawBoard() {
+        var int row, col, i, x, y, size, halfSize;
+        var Array coords;
+        let coords = Array.new(2);
+        let size = cellSize;
+        let halfSize = size / 2;
+
+        do Screen.clearScreen();
+        do Screen.setColor(true); 
+
+        do Screen.drawLine(xStart + size, yStart, xStart + size, yStart + (size * 3)); 
+        do Screen.drawLine(xStart + (size * 2), yStart, xStart + (size * 2), yStart + (size * 3)); 
+        do Screen.drawLine(xStart, yStart + size, xStart + (size * 3), yStart + size); 
+        do Screen.drawLine(xStart, yStart + (size * 2), xStart + (size * 3), yStart + (size * 2)); 
+
+        let row = 0;
+        while (row < 3) {
+            let col = 0;
+            while (col < 3) {
+                let i = (row * 3) + col;
+                
+                if (~(board[i] = 0)) {
+                    do mapIndexToCoords(i, coords);
+                    let x = coords[0];
+                    let y = coords[1];
+
+                    if (board[i] = 1) {
+                        do Screen.drawLine(x - halfSize + 5, y - halfSize + 5, x + halfSize - 5, y + halfSize - 5);
+                        do Screen.drawLine(x - halfSize + 5, y + halfSize - 5, x + halfSize - 5, y - halfSize + 5);
+                    } else {
+                        do Screen.drawCircle(x, y, halfSize - 5);
+                    }
+                }
+                let col = col + 1;
+            }
+            let row = row + 1;
+        }
+
+        do coords.dispose();
+        return;
+    }
+
+    method boolean isWinner(int player) {
+        if (checkRows(player)) { return true; }
+        if (checkCols(player)) { return true; }
+        if (checkDiagonals(player)) { return true; }
+        return false;
+    }
+
+    method boolean checkRows(int player) {
+        var int r, idx;
+        let r = 0;
+        while (r < 3) {
+            let idx = r * 3;
+            if ((board[idx] = player) & (board[idx + 1] = player) & (board[idx + 2] = player)) {
+                return true;
+            }
+            let r = r + 1;
+        }
+        return false;
+    }
+
+    method boolean checkCols(int player) {
+        var int c;
+        let c = 0;
+        while (c < 3) {
+            if ((board[c] = player) & (board[c + 3] = player) & (board[c + 6] = player)) {
+                return true;
+            }
+            let c = c + 1;
+        }
+        return false;
+    }
+
+    method boolean checkDiagonals(int player) {
+        if ((board[0] = player) & (board[4] = player) & (board[8] = player)) {
+            return true;
+        }
+        if ((board[2] = player) & (board[4] = player) & (board[6] = player)) {
+            return true;
+        }
+        return false;
+    }
+
+    method boolean hasEmpty() {
+        var int i;
+        var boolean foundEmpty;
+        
+        let i = 0;
+        let foundEmpty = false;
+
+        while ((i < 9) & (~foundEmpty)) {
+            if (board[i] = 0) {
+                let foundEmpty = true;
+            } else {
+                let i = i + 1;
+            }
+        }
+        return foundEmpty;
+    }
+}

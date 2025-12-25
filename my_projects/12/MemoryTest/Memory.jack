@@ -1,0 +1,126 @@
+// This file is part of www.nand2tetris.org
+// and the book "The Elements of Computing Systems"
+// by Nisan and Schocken, MIT Press.
+// File name: projects/12/Memory.jack
+
+/**
+ * Memory operations library.
+ * 
+ * Implements dynamic allocation using a free-list.
+ */ 
+class Memory {
+
+    static Array memory;        
+    static Array freeList;      
+    static Array memoryBottom;  
+    static int heapBottom;      
+    static int heapBase;        
+    static int LENGTH;          
+    static int NEXT;            
+    static int ALLOC_LENGTH;    
+
+    function void init() {
+
+        let heapBase = 2048;
+        let heapBottom = 16384;
+        let memory = 0;          
+        let freeList = heapBase; 
+        let LENGTH = 0;          
+        let NEXT = 1;            
+        let freeList[LENGTH] = heapBottom - heapBase;
+        let freeList[NEXT] = null;
+        let ALLOC_LENGTH = -1;
+        return;
+    }
+    function int peek(int address) {
+        return memory[address];
+    }
+    function void poke(int address, int value) {
+        let memory[address] = value;
+        return;
+    }
+
+    function Array bestFit(int size) {
+        var Array curBlock, bestBlock;
+        var int bestSize, curSize;
+
+        let bestBlock = null;
+        let bestSize = heapBottom - heapBase; 
+        let curBlock = freeList;
+        if (curBlock[NEXT] = null) {
+            return curBlock;
+        }
+        while (~(curBlock = null)) {
+            let curSize = curBlock[LENGTH] - 1; 
+            if (~(curSize < size) & (curSize < bestSize)) {
+                let bestBlock = curBlock;
+                let bestSize = curSize;
+            }
+            let curBlock = curBlock[NEXT];
+        }
+        return bestBlock;
+    }
+
+    function int alloc(int size) {
+        var Array foundBlock, nextBlock, result;
+        let foundBlock = Memory.bestFit(size);
+        let result = foundBlock + 1; 
+        if (~(foundBlock = null)) {
+            if (foundBlock[LENGTH] > (size + 3)) {
+                let nextBlock = foundBlock + size + 1;
+                let nextBlock[NEXT] = foundBlock[NEXT];
+                let nextBlock[LENGTH] = foundBlock[LENGTH] - size - 1;
+                let result[ALLOC_LENGTH] = size + 1;
+                let freeList = nextBlock;
+            } 
+            else {
+                let nextBlock = foundBlock[NEXT];
+                let result[ALLOC_LENGTH] = foundBlock[LENGTH];
+            }
+            let foundBlock = nextBlock;
+        }
+        return result;
+    }
+
+    function void deAlloc(int object) {
+        var Array preBlock, nextBlock;
+        var int size;
+        let size = object[ALLOC_LENGTH];
+        let object = object - 1; 
+        let preBlock = Memory.findPreFree(object);
+        if (preBlock = null) {
+            let object[LENGTH] = size;
+            let object[NEXT] = freeList;
+            let freeList = object;
+        } 
+        else {
+            if ((preBlock + preBlock[LENGTH]) = object) {
+                let preBlock[LENGTH] = preBlock[LENGTH] + size;
+                let object = preBlock;
+            } 
+            else {
+                let object[LENGTH] = size;
+                let object[NEXT] = preBlock[NEXT];
+                let preBlock[NEXT] = object;
+            }
+        }
+        if ((object + object[LENGTH]) = object[NEXT]) {
+            let nextBlock = object[NEXT];
+            let object[LENGTH] = object[LENGTH] + nextBlock[LENGTH];
+            let object[NEXT] = nextBlock[NEXT];
+        }
+        return;
+    }
+
+    function Array findPreFree(int object) {
+        var Array preBlock;
+        if (freeList > object) {
+            return null;
+        }
+        let preBlock = freeList;
+        while (~(preBlock[NEXT] = null) & (preBlock[NEXT] < object)) {
+            let preBlock = preBlock[NEXT];
+        }
+        return preBlock;
+    }
+}

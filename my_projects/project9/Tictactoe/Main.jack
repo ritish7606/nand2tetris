@@ -1,0 +1,11 @@
+class Main {
+    function void main() {
+        var Game ticTacToeApp;
+
+        let ticTacToeApp = Game.new();
+        do ticTacToeApp.play();
+        do ticTacToeApp.dispose();
+        
+        return;
+    }
+}
